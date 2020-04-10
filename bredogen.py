@@ -95,7 +95,7 @@ def main():
 
     has_args = len(argv) > 1
     if has_args:
-        for arg in argv:
+        for arg in argv[1:]:
             print_repl(arg, ' ')
     else:
         # this may block on stdin
