@@ -1,0 +1,4 @@
+# Create new self-signed certificate, protected by passphrase
+openssl rsa -new -x509 -keyout pass_server.pem -out pass_server.pem -days 365
+# Remove passphrase from pass_server.pem, and write server.pem (that will work without passphrase)
+openssl rsa -in pass_server.pem -out server.pem
