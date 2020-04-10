@@ -2,7 +2,7 @@
 
 import random
 import re
-from sys import argv
+from sys import argv, stdin
 
 SYMBOLS=",.:!?"
 
@@ -88,12 +88,21 @@ def replace(text):
     return ret
 
 def main():
-    ret = ""
-    for arg in argv[1:]:
-        ret += arg + " "
-    repl = replace(ret)
-    repl += random_ending()
-    print(beautify(repl))
+    def print_repl(text, end):
+        repl = replace(text)
+        beautiful = beautify(repl)
+        print(beautiful, end=end)
+
+    has_args = len(argv) > 1
+    if has_args:
+        for arg in argv:
+            print_repl(arg, ' ')
+    else:
+        # this may block on stdin
+        for line in stdin:
+            print_repl(line, '\n')
+    beautiful = beautify(random_ending())
+    print(beautiful)
 
 if __name__ == '__main__':
     main()
