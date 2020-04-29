@@ -105,6 +105,23 @@ def replace(text):
     ret += text[start:]
     return ret
 
+def process(src):
+    repl = replace(src)
+    repl = repl.rstrip()
+    if len(repl) == 0:
+        return src
+    if repl != src and random.random() <= 0.90:
+        if repl[-1] not in ('.','?',',',';',':','0','1','2','3','4','5','6','7','8','9'):
+            repl += ", " + random_ending()
+        elif repl[-1] not in ('0','1','2','3','4','5','6','7','8','9'):
+            repl = repl[:-1] + ' ' + random_ending() + repl[-1]
+    elif random.random() < 0.75:
+        if repl[-1] not in ('.','?',',',';',':','0','1','2','3','4','5','6','7','8','9'):
+            repl += ", " + random_ending()
+        elif repl[-1] not in ('0','1','2','3','4','5','6','7','8','9'):
+            repl = repl[:-1] + ' ' + random_ending() + repl[-1]
+    return beautify(repl)
+
 def main():
     def print_repl(text, end):
         repl = replace(text)

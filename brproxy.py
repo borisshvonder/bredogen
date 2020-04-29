@@ -143,22 +143,7 @@ class MyHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                     # Skip all-digit strings
                     if src.lower().strip().replace(':','').replace('.','').replace(';','').isdigit():
                         continue
-                    repl = bredogen.replace(src)
-                    repl = repl.rstrip()
-                    if len(repl) == 0:
-                        continue
-                    if repl != src and random.random() <= 0.90:
-                        if repl[-1] not in ('.','?',',',';',':','0','1','2','3','4','5','6','7','8','9'):
-                            repl += ", " + bredogen.random_ending()
-                        elif repl[-1] not in ('0','1','2','3','4','5','6','7','8','9'):
-                            repl = repl[:-1] + ' ' + bredogen.random_ending() + repl[-1]
-                    elif random.random() < 0.75:
-                        if repl[-1] not in ('.','?',',',';',':','0','1','2','3','4','5','6','7','8','9'):
-                            repl += ", " + bredogen.random_ending()
-                        elif repl[-1] not in ('0','1','2','3','4','5','6','7','8','9'):
-                            repl = repl[:-1] + ' ' + bredogen.random_ending() + repl[-1]
-                    repl = bredogen.beautify(repl)
-                    t.getparent().text = repl
+                    t.getparent().text = bredogen.process(src)
 
         return etree.tostring(tree.getroot(), pretty_print=True, method="html")
 
