@@ -11,16 +11,13 @@ from lxml import etree
 from io import StringIO, BytesIO
 import bredogen
 import random
+import argparse
+import sys
 
 # Try to use gevent for light threading (improve performance)
 import gevent
 from gevent import monkey
 monkey.patch_all()
-
-ADDR = '' # listen on all interfaces
-PORT = 4443
-CERTFILE = "server.pem"
-SITEHOST="ria.ru"
 
 class MyHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     #protocol_version = 'HTTP/1.1' # allow HTTP/1.1 features
@@ -52,11 +49,14 @@ class MyHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
     # Handle all http methods in one function
     def custom_handle_request(self):
+        # Get site hostname
+        self.sitehost = self.server.sitehost
+
         # Send request to upstream
-        upstream_conn = http.client.HTTPSConnection(SITEHOST)
+        upstream_conn = http.client.HTTPSConnection(self.sitehost)
         upstream_conn.putrequest(self.command, self.path, skip_host=False, skip_accept_encoding=False)
         upstream_connection_close = False
-        request_hostname = SITEHOST
+        request_hostname = self.sitehost
         for k,v in list(self.headers.items()):
             if k.lower() == "host":
                 request_hostname = v
@@ -132,8 +132,8 @@ class MyHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         # URL rewriting
         for a in tree.getroot().xpath(".//a"):
             url = a.get('href')
-            if url and SITEHOST in url:
-                url = url.replace(SITEHOST, request_hostname)
+            if url and self.sitehost in url:
+                url = url.replace(self.sitehost, request_hostname)
                 a.set('href', url)
 
         for t in tree.getroot().xpath(".//text()"):
@@ -166,9 +166,34 @@ class MyHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 class MyHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     daemon_threads = True
 
-print("Starting HTTPS Server on port {addr}:{port}...".format(addr=ADDR, port=PORT))
-#httpd = http.server.HTTPServer((ADDR, PORT), MyHTTPRequestHandler)
-httpd = MyHTTPServer((ADDR, PORT), MyHTTPRequestHandler)
-httpd.socket = ssl.wrap_socket(httpd.socket, certfile = CERTFILE, server_side = True, cert_reqs=ssl.CERT_OPTIONAL)
-httpd.serve_forever()
+def main():
+    parser = argparse.ArgumentParser(description='Bredogen HTTP(S) proxy (courtesy Borisich)')
+    parser.add_argument('-l', '--listen', type=str, default='443', help='listen in the form [ip:]port (default 443)')
+    parser.add_argument('-c', '--certfile', type=str, help='')
+    parser.add_argument('hostname', type=str, help='site hostname')
+    args = parser.parse_args()
+
+    if args.certfile == None:
+        sys.stderr.write("error: You must specify --certfile!\n")
+        parser.print_usage(sys.stderr)
+        sys.exit()
+
+    if ':' in args.listen:
+        addr, port = args.listen.split(':', 1)
+    else:
+        addr, port = '', args.listen
+    port = int(port)
+
+    print("Starting HTTPS Server listening on {addr}:{port} certfile='{certfile}' upstream '{hostname}' ...".format(
+        addr=addr, port=port, certfile=args.certfile, hostname=args.hostname)
+    )
+
+    httpd = MyHTTPServer((addr, port), MyHTTPRequestHandler)
+    httpd.socket = ssl.wrap_socket(httpd.socket, certfile = args.certfile, server_side = True, cert_reqs=ssl.CERT_OPTIONAL)
+    # Store site hostname on the "server" object, so it is available for request handlers
+    httpd.sitehost = args.hostname
+    httpd.serve_forever()
+
+if __name__ == '__main__':
+        main()
 
